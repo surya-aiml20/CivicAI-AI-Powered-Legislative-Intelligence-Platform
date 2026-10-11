@@ -13,6 +13,12 @@ load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+
+def get_groq_model() -> str:
+    model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL)
+    return model.strip() or DEFAULT_GROQ_MODEL
 
 # ─────────────────────────────────────────────
 # CONFIG & CLIENTS
@@ -46,6 +52,7 @@ def get_groq():
         st.stop()
 
     return Groq(api_key=api_key)
+
 # ─────────────────────────────────────────────
 # STYLES
 # ─────────────────────────────────────────────
@@ -632,9 +639,10 @@ def rag_answer(groq_client, question: str, bill_text: str, bill_title: str) -> s
     context = bill_text[:14000] if bill_text else ""
     if not context:
         return "No bill text available to answer from."
+    model = get_groq_model()
     try:
         resp = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=model,
             messages=[
                 {"role": "system", "content": (
                     "You are an expert UK legislative analyst. "
@@ -650,7 +658,11 @@ def rag_answer(groq_client, question: str, bill_text: str, bill_title: str) -> s
         )
         return resp.choices[0].message.content.strip()
     except Exception as e:
-        return f"Error generating answer: {e}"
+        return (
+            f"Error generating answer: the configured Groq model '{model}' is unavailable. "
+            f"Update GROQ_MODEL in your .env to a valid Groq model such as 'llama-3.3-70b-versatile'. "
+            f"Original error: {e}"
+        )
 
 def generate_compliance_analysis(groq_client, bill_text: str, bill_title: str) -> dict:
     context = bill_text[:12000] if bill_text else ""
@@ -667,9 +679,10 @@ def generate_compliance_analysis(groq_client, bill_text: str, bill_title: str) -
 Return raw JSON only. No markdown, no explanation.
 Bill: {bill_title}
 Text: {context}"""
+    model = get_groq_model()
     try:
         resp = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1, max_tokens=1200
         )

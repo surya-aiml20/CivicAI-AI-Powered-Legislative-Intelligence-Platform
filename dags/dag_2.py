@@ -251,6 +251,7 @@ with DAG(
         from groq import Groq
         import time
 
+        groq_model = Variable.get("GROQ_MODEL", default_var="llama-3.3-70b-versatile")
         client = Groq(
             api_key=Variable.get("GROQ_API_KEY")
         )
@@ -286,7 +287,7 @@ with DAG(
                 trimmed_text = full_text[:12000]
 
                 response = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model=groq_model,
                     messages=[
                         {
                             "role": "system",
@@ -365,7 +366,7 @@ with DAG(
 
             try:
                 response = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model=groq_model,
                     messages=[
                         {
                             "role": "system",
